@@ -66,3 +66,26 @@ so an IAM user isn't required.
 4. Click Next > Add permissions, then refresh the Glue console and retry.
 
 **Note:** The user cannot grant permissions to itself, so this has to be done from root or another admin. Policies can take up to about 30 seconds to apply. Enable MFA on any user with administrator access, and keep root for billing and account-level tasks only.
+
+---
+## 4. Quick (QuickSight) dataset import fails with S3 ListBucket permission denied
+
+**Environment:** Amazon Quick (formerly QuickSight), region ap-southeast-2, dataset built from an AWS Glue/Athena table (`orders`) over an S3 bucket
+
+**Problem:** Creating the dataset and importing it into SPICE failed, so the dataset could not load data from the Athena table.
+
+**Error message:**
+`PERMISSION_DENIED: User: arn:aws:sts::<account-id>:assumed-role/aws-quicksight-service-role-v0/QuickSight-RoleSession-... is not authorized to perform: s3:ListBucket on resource: "arn:aws:s3:::superstore-analysis-<account-id>" because no identity-based policy allows the s3:ListBucket action`
+
+**Cause:** Quick reads data through its own service role (`aws-quicksight-service-role-v0`), not through the IAM user. That role had not been granted access to the S3 bucket, so the Athena query behind the dataset was denied.
+
+**Solution:**
+1. In Quick, open the user menu (moe) > Manage Account (admin).
+2. Go to Permissions > AWS resources.
+3. Tick Amazon S3, choose Select S3 buckets, and tick the data bucket (and the Athena query results bucket, if separate).
+4. Tick Amazon Athena, then save.
+5. Return to the dataset page, recreate dataset (if applicable) and run Refresh, and wait about a minute for permissions to apply.
+
+**Note:**
+- The error names the role that was denied, so fix that role. The IAM user `moe` was not the problem.
+- Amazon S3 Tables does not need to be ticked. It is for Iceberg table buckets, not regular buckets.
